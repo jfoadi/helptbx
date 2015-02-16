@@ -1,0 +1,266 @@
+#!/usr/bin/env cctbx.python
+
+# Description
+
+# Always included in cctbx code
+from __future__ import division
+
+# Global variables
+blank60 = " " * 60
+
+# Standard Python modules
+import sys, os, fnmatch, string
+
+
+# Functions
+
+def splitall(path):                            # Borrowed from Python by Examples
+    '''Splits a unix (windows?) path in its
+       component directories.'''
+    allparts = []
+    while 1:
+     parts = os.path.split(path)
+     if parts[0] == path:  # sentinel for absolute paths
+      allparts.insert(0, parts[0])
+      break
+     elif parts[1] == path: # sentinel for relative paths
+      allparts.insert(0, parts[1])
+      break
+     else:
+      path = parts[0]
+      allparts.insert(0, parts[1])
+
+    return allparts
+
+def prepare_help():
+	'''Writes PATH_TO_ALL_EXAMPLES.txt'''
+
+	# Searching directory
+ 	libtbx_build = os.getenv('LIBTBX_BUILD')
+ 	if libtbx_build == None:
+  		msg =       "\n"
+  		msg = msg + "****************************************************\n"
+  		msg = msg + "**************** INSTALLATION ERROR! ***************\n"
+  		msg = msg + "****************************************************\n"
+  		msg = msg + "\n"
+  		msg = msg + " The environment variable LIBTBX_BUILD has not been \n"
+  		msg = msg + " defined in your system. This is odd as this script \n"
+  		msg = msg + " runs using cctbx python. There have probably been \n"
+  		msg = msg + " installation error while installing cctbx. Please \n"
+  		msg = msg + " check.\n"
+  		msg = msg + "\n"
+  		msg = msg + " This script cannot be executed without correct \n"
+  		msg = msg + " LIBTBX_BUILD variable. \n"
+  		msg = msg + "\n"
+  		raise SystemExit(msg)
+ 	csdir = os.path.join(os.path.dirname(libtbx_build),'sources','cctbx_sources')
+	
+ 	# Make a list of all tst type files and examples directories
+ 	list_tst_files = []
+ 	list_examples_directories = []
+ 	for root, dirnames, filenames in os.walk(csdir):
+  		for filename in fnmatch.filter(filenames, 'tst_*.py'):
+   			list_tst_files.append(os.path.join(root, filename))
+  		for dirname in fnmatch.filter(dirnames, 'examples'):
+   			list_examples_directories.append(os.path.join(root, dirname))
+  		for dirname in fnmatch.filter(dirnames, 'example'):
+   			list_examples_directories.append(os.path.join(root, dirname))
+
+	# Make a list of all files in examples directories
+ 	list_examples_files = []
+ 	for a in list_examples_directories:
+  		ltmp = os.listdir(a)
+  		for b in ltmp:
+   			if fnmatch.fnmatch(b, '*.py'): list_examples_files.append(os.path.join(a,b))
+
+ 	# Output to lines list (eventually in output file "PATH_TO_ALL_EXAMPLES.txt")
+ 	lines = []
+ 	lines.append("*********************************************************************************************************\n")
+ 	lines.append("************************************* EXAMPLES DIRECTORIES **********************************************\n")
+ 	lines.append("*********************************************************************************************************\n")
+ 	lines.append("\n")
+ 	for a in list_examples_files:
+  		lines.append(a + "\n")
+ 	lines.append("\n")
+ 	lines.append("*********************************************************************************************************\n")
+ 	lines.append("******************************************* TST FILES ***************************************************\n")
+ 	lines.append("*********************************************************************************************************\n")
+ 	lines.append("\n")
+ 	for a in list_tst_files:
+  		lines.append(a + "\n")
+	
+ 	# Output to "PATH_TO_ALL_EXAMPLES.txt" (if tst or examples files are found)
+ 	filename = "PATH_TO_ALL_EXAMPLES.txt"
+ 	file = open(filename,'w')
+ 	file.writelines(lines)
+ 	file.close()
+
+def break_and_mend(stringa, sentence):
+    '''All stringa in sentence are located and a new,
+       highlighted sentence is returned.'''
+
+    # Build highlight type for search term
+    bstringa = '\033[1m' + stringa + '\033[0m'
+
+    # Replace stringa in bstringa wherever it occurs in sentence
+    new_sentence = string.replace(sentence, stringa, bstringa)
+
+    return new_sentence
+
+def find_def_chunck(ltmp,line,sterm,maxL=20):
+        '''Something'''
+
+        # Start and End line numbers
+        sLineNum = 0
+        eLineNum = 0
+
+        # Find line number where "line" is
+        idx = ltmp.index(line)
+        defFlag = 0
+        jdx = 0
+        while defFlag == 0 and (idx + jdx) > 0:
+                jdx = jdx - 1
+                if "def " in ltmp[idx + jdx]:
+                        sLineNum = idx + jdx
+                        defFlag = 1
+        defFlag = 0
+        jdx = 0
+        while defFlag == 0 and (idx + jdx) < (len(ltmp) - 1):
+                jdx = jdx + 1
+                if "def " in ltmp[idx + jdx] or "__main__" in ltmp[idx + jdx]:
+                        eLineNum = idx + jdx - 1
+                        defFlag = 1
+
+        # Limit to maxL. If longer return ""
+	nll = []
+        if (eLineNum - sLineNum) > maxL:
+		nll.append(line)
+                return nll
+
+        # Fill output chunck of code
+        for i in range(sLineNum , eLineNum):
+                nll.append(ltmp[i])
+
+        return nll
+
+########################
+######### MAIN #########
+########################
+
+if __name__ == '__main__':
+
+	source_file = os.path.join(os.curdir,"PATH_TO_ALL_EXAMPLES.txt")
+ 	if not os.path.exists(source_file):
+		prepare_help()
+
+ 	# Interpret input
+ 	li = sys.argv
+ 	length_li = len(li)
+
+ 	# Input length wrong: stop program and explain correct imput
+ 	if length_li != 2:
+  		msg =       "\n"
+  		msg = msg + "****************************************************\n"
+  		msg = msg + "******************* INPUT ERROR! *******************\n"
+  		msg = msg + "****************************************************\n"
+  		msg = msg + "\n"
+  		msg = msg + " The correct input is of the type: \n"
+  		msg = msg + "\n"
+  		msg = msg + "       helptbx function_name \n"
+  		msg = msg + "\n"
+  		msg = msg + " where [function_name] is one of the possible\n"
+  		msg = msg + " functions / names associated with cctbx. \n"
+  		msg = msg + "\n"
+  		raise SystemExit(msg)
+
+	# Load all files from examples directory and of tst type
+ 	# All information is included in istars list:
+ 	# examples files:
+ 	#                              first useful line        istars[0]
+ 	#                              last  useful line        istars[1]-2
+ 	# tst files:
+ 	#                              first useful line        istars[3]+2
+ 	#                              last  useful line        len(ltmp)-1
+ 	file = open(source_file,'r')
+ 	ltmp = file.readlines()
+ 	file.close()
+ 	istars = []
+ 	istars.append(4)
+ 	for i in range(4,len(ltmp)):
+  		if ("***" in ltmp[i]): istars.append(i)
+ 	examples_files = []
+ 	for i in range(istars[0],(istars[1] - 1)): examples_files.append(ltmp[i].rstrip('\n'))
+ 	tst_files = []
+ 	for i in range((istars[3] + 2),len(ltmp)): tst_files.append(ltmp[i].rstrip('\n'))
+	
+ 	# Common path to all files read from PATH_TO_ALL_EXAMPLES.txt
+ 	cprefix = os.path.commonprefix(examples_files + tst_files)
+
+ 	# Re-write search term with blanks before and after
+ 	sterm = li[1]
+ 	bsterm = " " + li[1] + " "     # This might be needed later (if I think of something clever)
+	
+ 	# Output to lines list (eventually in an output file) for tst files
+ 	lines = []
+ 	lines.append("*****************************************************************************************************************************\n")
+ 	lines.append("*************************************** POTENTIALLY USEFUL LINES OF CODE ****************************************************\n")
+ 	lines.append("********************************************* FROM CCTBX TST FILES **********************************************************\n")
+ 	lines.append("*****************************************************************************************************************************\n")
+ 	lines.append("\n")
+
+	for et in tst_files:
+  		ff = string.split(et, cprefix)[1]
+  		file = open(et,'r')
+  		ltmp = file.readlines()
+  		file.close()
+                fileFLAG = 0
+  		for line in ltmp:
+   			if fileFLAG == 0 and sterm in line:
+    				extraL = find_def_chunck(ltmp,line,sterm)
+				if extraL != None and len(extraL) == 1: fileFLAG = 1
+    				if extraL != None:
+        				stmp = "%-60s" % ff
+        				lines.append(stmp)
+        				for a in extraL:
+                 				stmp = a.rstrip()
+                				new_stmp = break_and_mend(sterm, stmp)
+                				stmp2 = " : %-100s" % new_stmp
+                				stmp = blank60 + stmp2 + "\n"
+                				lines.append(stmp)
+
+ 	# Now includes lines in tst files
+ 	lines.append("\n")
+ 	lines.append("\n")
+ 	lines.append("*****************************************************************************************************************************\n")
+ 	lines.append("*************************************** POTENTIALLY USEFUL LINES OF CODE ****************************************************\n")
+ 	lines.append("********************************************* FROM CCTBX EXAMPLES ***********************************************************\n")
+ 	lines.append("*****************************************************************************************************************************\n")
+ 	lines.append("\n")
+
+ 	for ef in examples_files:
+  		ff = string.split(ef, cprefix)[1]
+  		file = open(ef,'r')
+  		ltmp = file.readlines()
+  		file.close()
+		fileFLAG = 0
+  		for line in ltmp:
+   			if fileFLAG == 0 and sterm in line:
+    				extraL = find_def_chunck(ltmp,line,sterm)
+				if extraL != None and len(extraL) == 1: fileFLAG = 1
+    				if extraL != None:
+        				stmp = "%-60s" % ff
+        				lines.append(stmp)
+        				for a in extraL:
+                				stmp = a.rstrip()
+                				new_stmp = break_and_mend(sterm, stmp)
+                				stmp2 = " : %-100s" % new_stmp
+                				stmp = blank60 + stmp2 + "\n"
+                				lines.append(stmp)
+
+	# Output to "EXAMPLES_[search term].txt" (if anything is found)
+ 	if len(lines) > 12:
+  		for ll in lines:
+   			print ll.rstrip()
+ 	if len(lines) == 12:
+  		msg = "No files including term " + sterm + " found!"
+  		print msg
